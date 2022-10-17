@@ -77,28 +77,31 @@ def read_fastq(fastq_file):
             next(file_in)
             next(file_in)
 
-            
+
 def cut_kmer(read, kmer_size):
     for i in range(len(read)-(kmer_size-1)):
         yield read[i:i+kmer_size]
 
-        
+
 def build_kmer_dict(fastq_file, kmer_size):
     read = "".join(list(read_fastq(fastq_file)))
     list_kmer = cut_kmer(read, kmer_size)
     kmer_dict = {}
-    
+
     for kmer in list_kmer:
         if kmer in kmer_dict:
             kmer_dict[kmer]+=1
         else:
             kmer_dict[kmer] = 1
-    
+
     return kmer_dict
 
 
 def build_graph(kmer_dict):
-    pass
+    digraph = nx.DiGraph()
+    for key, value in kmer_dict.items():
+        digraph.add_edge(key[:-1], key[1:], weight=value)
+    return digraph
 
 
 def remove_paths(graph, path_list, delete_entry_node, delete_sink_node):
@@ -106,7 +109,7 @@ def remove_paths(graph, path_list, delete_entry_node, delete_sink_node):
 
 def std(data):
     pass
-
+  
 
 def select_best_path(graph, path_list, path_length, weight_avg_list, 
                      delete_entry_node=False, delete_sink_node=False):
@@ -181,8 +184,10 @@ def main():
     # Get arguments
     args = get_arguments()
     
-    dico = build_kmer_dict(args.fastq_file, args.kmer_size)
-    print(dico)
+    kmer_dict = build_kmer_dict(args.fastq_file, args.kmer_size)
+    build_graph(kmer_dict)
+    
+    #print(dico)
 
     # Fonctions de dessin du graphe
     # A decommenter si vous souhaitez visualiser un petit 
