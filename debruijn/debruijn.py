@@ -104,6 +104,42 @@ def build_graph(kmer_dict):
     return digraph
 
 
+def get_starting_nodes(graph):
+    starting_nodes = []
+    for node in list(graph.nodes()):
+        if len(list(graph.predecessors(node))) == 0:
+            starting_nodes.append(node)
+    return starting_nodes
+
+
+def get_sink_nodes(graph):
+    sinking_nodes = []
+    for node in list(graph.nodes()):
+        if len(list(graph.successors(node))) == 0:
+            sinking_nodes.append(node)
+    return sinking_nodes
+
+
+def get_contigs(graph, starting_nodes, ending_nodes):
+    contigs = []
+    for start in starting_nodes:
+        for end in ending_nodes:
+            if nx.has_path(graph, start, end):
+                for path in nx.all_simple_paths(graph, start, end):
+                    seq = path[0]
+                    for node in path[1:]:
+                        seq+=node[-1]
+                    contigs.append(tuple((seq, len(seq))))
+    return contigs
+
+
+def save_contigs(contigs_list, output_file):
+    with open(output_file, "w") as file_out:
+        for i in range(len(contigs_list)):
+            file_out.write(f">contig_{i} len={contigs_list[i][1]}\n")
+            file_out.write(f"{fill(contigs_list[i][0])}\n")
+
+
 def remove_paths(graph, path_list, delete_entry_node, delete_sink_node):
     pass
 
@@ -130,22 +166,11 @@ def solve_entry_tips(graph, starting_nodes):
 def solve_out_tips(graph, ending_nodes):
     pass
 
-def get_starting_nodes(graph):
-    pass
-
-def get_sink_nodes(graph):
-    pass
-
-def get_contigs(graph, starting_nodes, ending_nodes):
-    pass
-
-def save_contigs(contigs_list, output_file):
-    pass
-
 
 def fill(text, width=80):
     """Split text with a line return to respect fasta format"""
     return os.linesep.join(text[i:i+width] for i in range(0, len(text), width))
+
 
 def draw_graph(graph, graphimg_file):
     """Draw the graph
@@ -185,9 +210,13 @@ def main():
     args = get_arguments()
     
     kmer_dict = build_kmer_dict(args.fastq_file, args.kmer_size)
-    build_graph(kmer_dict)
+    graph = build_graph(kmer_dict)
+    start = get_starting_nodes(graph)
+    end = get_sink_nodes(graph)
+    contig_list = get_contigs(graph, start, end)
+    save_contigs(contigs_list, args.output_file)
     
-    #print(dico)
+    #print(start)
 
     # Fonctions de dessin du graphe
     # A decommenter si vous souhaitez visualiser un petit 
