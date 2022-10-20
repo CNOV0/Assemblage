@@ -151,20 +151,29 @@ def remove_paths(graph, path_list, delete_entry_node, delete_sink_node):
         else:
             graph.remove_nodes_from(path[1:-1])
     return graph
-    
-        
+
 
 def std(data):
     return statistics.stdev(data)
-  
+
 
 def select_best_path(graph, path_list, path_length, weight_avg_list, 
                      delete_entry_node=False, delete_sink_node=False):
-    pass
+    std_avg_weight = std(weight_avg_list)
+    if std_avg_weight > 0:
+        best = # celui dont poids est le plus eleve
+    elif std_avg_weight == 0:
+        std_length = std(path_length)
+        if std_length > 0:
+            best = # chemin le plus long
+        elif std_length == 0:
+            best = randint(len(??))
+
 
 def path_average_weight(graph, path):
     subgraph = graph.subgraph(path).edges(data=True)
     return statistics.mean([d["weight"] for (u, v, d) in subgraph])
+
 
 def solve_bubble(graph, ancestor_node, descendant_node):
     if nx.has_path(graph, ancestor_node, descendant_node):
@@ -197,6 +206,7 @@ def simplify_bubbles(graph):
                     solve_bubble(graph, node_ancestor, node))
                 break
     return graph
+
 
 def solve_entry_tips(graph, starting_nodes):
     pass
