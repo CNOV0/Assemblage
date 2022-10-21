@@ -16,14 +16,14 @@
 import argparse
 import os
 import sys
-import networkx as nx
-import matplotlib
-from operator import itemgetter
-import random
-random.seed(9001)
 from random import randint
 import statistics
+import random
+from operator import itemgetter
+import matplotlib
 import matplotlib.pyplot as plt
+import networkx as nx
+random.seed(9001)
 matplotlib.use("Agg")
 
 __author__ = "Your Name"
@@ -36,9 +36,17 @@ __email__ = "your@email.fr"
 __status__ = "Developpement"
 
 def isfile(path):
-    """Check if path is an existing file.
-      :Parameters:
-          path: Path to the file
+    """
+    Check if path is an existing file.
+    Parameters
+    ----------
+    path:
+    string
+        Path to the file
+    Returns
+    -------
+    string
+        Path to the file
     """
     if not os.path.isfile(path):
         if os.path.isdir(path):
@@ -50,8 +58,11 @@ def isfile(path):
 
 
 def get_arguments():
-    """Retrieves the arguments of the program.
-      Returns: An object that contains the arguments
+    """
+    Retrieves the arguments of the program.
+    Returns
+    -------
+        An object that contains the arguments
     """
     # Parsing arguments
     parser = argparse.ArgumentParser(description=__doc__, usage=
@@ -70,6 +81,18 @@ def get_arguments():
 
 
 def read_fastq(fastq_file):
+    """
+    Read a fastq file.
+    Parameters
+    ----------
+    fastq_file:
+    string
+        Name of the fastq file
+    Returns
+    -------
+    Generator
+        Generator containing the selected sequences
+    """
     isfile(fastq_file)
     with open(fastq_file, "r") as file_in:
         for line in file_in:
@@ -79,11 +102,41 @@ def read_fastq(fastq_file):
 
 
 def cut_kmer(read, kmer_size):
+    """
+    Read a fastq file.
+    Parameters
+    ----------
+    read:
+    string
+        sequence
+    kmer_size:
+    int
+        Size of wanted kmer
+    Returns
+    -------
+    Generator
+        k-mer generator
+    """
     for i in range(len(read)-(kmer_size-1)):
         yield read[i:i+kmer_size]
 
 
 def build_kmer_dict(fastq_file, kmer_size):
+    """
+    Build a kmer dictionnary.
+    Parameters
+    ----------
+    fastq_file:
+    string
+        Fastq file
+    kmer_size:
+    int
+        Size of wanted kmer
+    Returns
+    -------
+    Dictionnary
+        Dictionnary with kmer as its keys and their occurrences as value
+    """
     read = "".join(list(read_fastq(fastq_file)))
     list_kmer = cut_kmer(read, kmer_size)
     kmer_dict = {}
@@ -98,6 +151,18 @@ def build_kmer_dict(fastq_file, kmer_size):
 
 
 def build_graph(kmer_dict):
+    """
+    Build a graph.
+    Parameters
+    ----------
+    kmer_dict:
+    Dictionnary
+        kmer Dictionnary
+    Returns
+    -------
+    graph
+        graph containing the kmer prefixes and sufixes as nodes
+    """
     digraph = nx.DiGraph()
     for key, value in kmer_dict.items():
         digraph.add_edge(key[:-1], key[1:], weight=value)
@@ -105,6 +170,18 @@ def build_graph(kmer_dict):
 
 
 def get_starting_nodes(graph):
+    """
+    Get the starting nodes of a graph.
+    Parameters
+    ----------
+    graph:
+    graph
+        kmer Dictionnary
+    Returns
+    -------
+    List
+        list of entry nodes
+    """
     starting_nodes = []
     for node in list(graph.nodes()):
         if len(list(graph.predecessors(node))) == 0:
@@ -113,6 +190,18 @@ def get_starting_nodes(graph):
 
 
 def get_sink_nodes(graph):
+    """
+    Get the end nodes of a graph.
+    Parameters
+    ----------
+    graph:
+    graph
+        kmer Dictionnary
+    Returns
+    -------
+    List
+        list of sinking nodes
+    """
     sinking_nodes = []
     for node in list(graph.nodes()):
         if len(list(graph.successors(node))) == 0:
@@ -121,6 +210,24 @@ def get_sink_nodes(graph):
 
 
 def get_contigs(graph, starting_nodes, ending_nodes):
+    """
+    Get the end nodes of a graph.
+    Parameters
+    ----------
+    graph:
+    graph
+        kmer Dictionnary
+    starting_nodes:
+    List
+        List of the starting nodes
+    ending_nodes:
+    List
+        List of the ending nodes
+    Returns
+    -------
+    List
+        List of tuple(contig, contig length)
+    """
     contigs = []
     for start in starting_nodes:
         for end in ending_nodes:
@@ -134,6 +241,17 @@ def get_contigs(graph, starting_nodes, ending_nodes):
 
 
 def save_contigs(contigs_list, output_file):
+    """
+    Write a fasta file of the contigs.
+    Parameters
+    ----------
+    contig_list:
+    List
+        List of tuples
+    output_file:
+    string
+        Name of the output file
+    """
     with open(output_file, "w") as file_out:
         for i in range(len(contigs_list)):
             file_out.write(f">contig_{i} len={contigs_list[i][1]}\n")
@@ -141,18 +259,53 @@ def save_contigs(contigs_list, output_file):
 
 
 def path_average_weight(graph, path):
+    """
+    Calculate the average weight in a path.
+    Parameters
+    ----------
+    graph:
+    graph
+        kmer Dictionnary
+    path:
+        Path in the graph
+    Returns
+    -------
+    int
+        Average weight in the path
+    """
     return statistics.mean([d["weight"] for (u, v, d) in graph.subgraph(path).edges(data=True)])
 
 
 def remove_paths(graph, path_list, delete_entry_node, delete_sink_node):
+    """
+    Remove nodes in several paths form a graph.
+    Parameters
+    ----------
+    graph:
+    graph
+        kmer Dictionnary
+    path_list:
+    List
+        List of path in the graph
+    delete_entry_node:
+    Boolean
+        If the first node is removed or not
+    delete_sink_node:
+    Boolean
+        If the last node is removed or not
+    Returns
+    -------
+    graph
+        the new graph with nodes removed
+    """
     for path in path_list:
         if delete_entry_node and delete_sink_node:
             graph.remove_nodes_from(path)
         # tous les noeud sont sup sauf le dernier
-        elif delete_entry_node and delete_sink_node == False:
+        elif delete_entry_node and delete_sink_node is False:
             graph.remove_nodes_from(path[:-1])
         # tous les noeuds sont sup sauf le premier
-        elif delete_entry_node == False and delete_sink_node:
+        elif delete_entry_node is False and delete_sink_node:
             graph.remove_nodes_from(path[1:])
         # tous les noeuds sont sup sauf le premier et le dernier
         else:
@@ -161,11 +314,50 @@ def remove_paths(graph, path_list, delete_entry_node, delete_sink_node):
 
 
 def std(data):
+    """
+    Calculate the standard error.
+    Parameters
+    ----------
+    data:
+    List
+        List of data
+    Returns
+    -------
+    int
+        the standard error of a list
+    """
     return statistics.stdev(data)
 
 
-def select_best_path(graph, path_list, path_length, weight_avg_list, 
+def select_best_path(graph, path_list, path_length, weight_avg_list,
                      delete_entry_node=False, delete_sink_node=False):
+    """
+    Select best path in a graph.
+    Parameters
+    ----------
+    graph:
+    graph
+        kmer Dictionnary
+    path_list:
+    List
+        List of path in the graph
+    path_length:
+    List
+        List of path length
+    weight_avg_list:
+    List
+        List of average weight (edges)
+    delete_entry_node:
+    Boolean
+        If the first node is removed or not
+    delete_sink_node:
+    Boolean
+        If the last node is removed or not
+    Returns
+    -------
+    graph
+        graph with the best path
+    """
     std_avg_weight = std(weight_avg_list)
     if std_avg_weight > 0:
         best_index = weight_avg_list.index(max(weight_avg_list))
@@ -183,37 +375,67 @@ def select_best_path(graph, path_list, path_length, weight_avg_list,
 
 
 def solve_bubble(graph, ancestor_node, descendant_node):
-    if nx.has_path(graph, ancestor_node, descendant_node):
-        length_list = []
-        avg_weight_list = []
-        for path in list(nx.all_simple_paths(graph, ancestor_node, descendant_node)):
-            length_list.append(len(path))
-            avg_weight_list.append(path_average_weight(graph, path))
-        if len(avg_weight_list) > 1:
-            return select_best_path(graph, path, length_list, avg_weight_list)
-    return graph
+    """
+    Remove a bubble in a graph.
+    Parameters
+    ----------
+    graph:
+    graph
+        kmer Dictionnary
+    ancestor_node:
+        Ancestor node
+    descendent_node:
+        Descendent node
+    Returns
+    -------
+    graph
+        Graph without bubble
+    """
+    path_list = list(nx.all_simple_paths(graph, source = ancestor_node, target = descendant_node))
+    weight_avg_list = []
+    path_length = []
+    for path in path_list:
+        weight_avg_list.append(path_average_weight(graph, path))
+        path_length.append(len(path))
+    return select_best_path(graph, path_list, path_length, weight_avg_list,
+                     delete_entry_node=False, delete_sink_node=False)
 
 
 def simplify_bubbles(graph):
+    """
+    Clears a graph of from bubbles.
+    Parameters
+    ----------
+    graph:
+    graph
+        kmer Dictionnary
+    Returns
+    -------
+    graph
+        Graph without bubbles
+    """
     bubble = False
-    for node in graph.nodes:
+    for node in graph.nodes():
         list_pred = list(graph.predecessors(node))
         if len(list_pred) > 1:
-            for i in range(len(list_pred) - 1):
-                for j in range(i + 1, len(list_pred)):
-                    node_ancestor = nx.lowest_common_ancestor(graph, list_pred[i], list_pred[j])
-                    if node_ancestor != None:
+            for i, pred_1 in enumerate(list_pred):
+                for pred_2 in list_pred[:i] + list_pred[i+1:]:
+                    node_ancestor = nx.lowest_common_ancestor(graph, pred_1, pred_2)
+                    if node_ancestor is not None:
                         bubble = True
                         break
-            if bubble:
-                graph = simplify_bubbles(solve_bubble(graph, node_ancestor, node))
-                break
+        if bubble is True:
+            break
+
+    if bubble:
+        graph = simplify_bubbles(solve_bubble(graph, node_ancestor, node))
 
     return graph
 
 
 def solve_entry_tips(graph, starting_nodes):
     pass
+
 
 def solve_out_tips(graph, ending_nodes):
     pass
@@ -226,7 +448,7 @@ def fill(text, width=80):
 
 def draw_graph(graph, graphimg_file):
     """Draw the graph
-    """                                    
+    """
     fig, ax = plt.subplots()
     elarge = [(u, v) for (u, v, d) in graph.edges(data=True) if d['weight'] > 3]
     #print(elarge)
@@ -237,7 +459,7 @@ def draw_graph(graph, graphimg_file):
     pos = nx.random_layout(graph)
     nx.draw_networkx_nodes(graph, pos, node_size=6)
     nx.draw_networkx_edges(graph, pos, edgelist=elarge, width=6)
-    nx.draw_networkx_edges(graph, pos, edgelist=esmall, width=6, alpha=0.5, 
+    nx.draw_networkx_edges(graph, pos, edgelist=esmall, width=6, alpha=0.5,
                            edge_color='b', style='dashed')
     #nx.draw_networkx(graph, pos, node_size=10, with_labels=False)
     # save image
@@ -248,7 +470,7 @@ def save_graph(graph, graph_file):
     """Save the graph with pickle
     """
     with open(graph_file, "wt") as save:
-            pickle.dump(graph, save)
+        pickle.dump(graph, save)
 
 
 #==============================================================
@@ -260,20 +482,15 @@ def main():
     """
     # Get arguments
     args = get_arguments()
-    
+
     kmer_dict = build_kmer_dict(args.fastq_file, args.kmer_size)
     graph = build_graph(kmer_dict)
     start = get_starting_nodes(graph)
     end = get_sink_nodes(graph)
     contig_list = get_contigs(graph, start, end)
-    #save_contigs(contigs_list, args.output_file)
-    
-    #simplify_bubbles(graph)
-    
-    #print(start)
 
     # Fonctions de dessin du graphe
-    # A decommenter si vous souhaitez visualiser un petit 
+    # A decommenter si vous souhaitez visualiser un petit
     # graphe
     # Plot the graph
     # if args.graphimg_file:
